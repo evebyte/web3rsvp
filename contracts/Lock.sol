@@ -2,6 +2,23 @@
 pragma solidity ^0.8.9;
 
 contract Web3RSVP {
+
+    // solidity events
+    event NewEventCreated(
+        bytes32 eventID,
+        address creatorAddress,
+        uint256 eventTimestamp,
+        uint256 maxCapacity,
+        uint256 deposits,
+        string eventDataCID
+    );
+
+    event NewRSVP(bytes32 eventID, address attendeeAddress);
+
+    event ConfirmedAttendee (bytes32 eventID, address attendeeAddress);
+
+    event DepositsPaidOut(bytes32 eventID);
+
     // this declares our object structure
     struct CreateEvent {
         bytes32 eventId;
@@ -17,15 +34,7 @@ contract Web3RSVP {
 
     mapping(bytes32 => CreateEvent) public idToEvent;
 
-
     // Create a New Event
-    /* these parameters are for the person creating the event on the frontend
-    - the eventTimestamp (when the event will start)
-    - the deposit required to RSVP to this event
-    - the max capacity of this event
-    - a reference to the IPFS hash containing information like the event name and description 
-
-    we set the function visibility to external because it is highly performant and saves on gas */
     function createNewEvent(
         uint256 eventTimestamp, 
         uint256 deposit,
@@ -59,8 +68,18 @@ contract Web3RSVP {
             claimedRSVPs, 
             false
         );
-    }
 
+        // emit the event
+        emit NewEventCreated(
+            eventId,
+            msg.sender,
+            eventTimestamp,
+            maxCapacity,
+            deposit,
+            eventDataCID
+        );
+        
+    }
 
     // RSVP To Event
     function createNewRSVP(bytes32 eventId) external payable {
@@ -84,6 +103,10 @@ contract Web3RSVP {
         }
 
         myEvent.confirmedRSVPs.push(payable(msg.sender));
+
+        // emit the event
+        emit NewRSVP(eventId, msg.sender);
+
     }
 
     // Check in Attendees
@@ -125,6 +148,10 @@ contract Web3RSVP {
         }
 
         require(sent, "Failed to send Ether");
+
+        // emit the event
+        emit ConfirmedAttendee(eventId, attendee);
+
         }
 
         // Confirm The Whole Group
@@ -174,5 +201,9 @@ contract Web3RSVP {
             }
 
             require(sent, "Failed to send Ether");
+
+            // emit the event
+            emit DepositsPaidOut(eventId);
+
         }
 }
